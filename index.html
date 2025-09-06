@@ -30,11 +30,11 @@
                 <span><i class="fab fa-weixin" style="color: #07C160;"></i> 微信视频号：缅甸小安翡翠</span>
             </p>
             
-            <a href="#" class="contact-btn line-btn" onclick="window.open('https://line.me/ti/p/your-line-id', '_blank')">
+            <a href="https://line.me/ti/p/WLcegguRh3" class="contact-btn line-btn" target="_blank" rel="noopener noreferrer">
                 <i class="fab fa-line" style="margin-right: 10px; font-size: 20px;"></i> 點擊打開 LINE 聯繫我
             </a>
             
-            <a href="whatsapp://chat?code=CJ3WAzixlZy8rZbx30Ljea" class="contact-btn whatsapp-btn" id="whatsappBtn">
+            <a href="https://chat.whatsapp.com/LoRamSU225TFtcmldlUXMf?mode=ems_copy_t" class="contact-btn whatsapp-btn" id="whatsappBtn" target="_blank" rel="noopener noreferrer" data-action="share/whatsapp/share">
                 <i class="fab fa-whatsapp" style="margin-right: 10px; font-size: 20px;"></i> 點擊加入 WhatsApp 群組
             </a>
             
@@ -102,33 +102,29 @@
             document.body.removeChild(textArea);
         }
         
-        // WhatsApp 群组链接 - 直接系统对话框方式
-        document.getElementById('whatsappBtn').addEventListener('click', function(e) {
-            e.preventDefault(); // 阻止默认行为
+        // WhatsApp 群组链接 - 现在使用直接链接，无需 JavaScript 处理
+        // 新链接: https://chat.whatsapp.com/LoRamSU225TFtcmldlUXMf?mode=ems_copy_t
+        
+        // LINE 链接增强 - 确保在移动设备上可以直接打开 LINE 应用
+        document.querySelector('.line-btn').addEventListener('click', function(e) {
+            const lineUrl = "https://line.me/ti/p/WLcegguRh3";
+            const lineAppUrl = "line://ti/p/WLcegguRh3";
+            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            const isAndroid = /Android/i.test(navigator.userAgent);
             
-            const inviteCode = "CJ3WAzixlZy8rZbx30Ljea";
-            const isAndroid = /android/i.test(navigator.userAgent);
-            const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-            const isMobile = isAndroid || isIOS;
-            
-            if (isMobile) {
-                // 移动设备直接尝试打开 WhatsApp 应用
-                if (isAndroid) {
-                    // Android - 使用 Intent 方案
-                    window.location.href = `intent://chat.whatsapp.com/${inviteCode}#Intent;scheme=https;package=com.whatsapp;end`;
-                } else {
-                    // iOS - 使用 Universal Links
-                    window.location.href = `whatsapp://chat?code=${inviteCode}`;
-                }
+            // 只在移动设备上执行特殊处理
+            if (isIOS || isAndroid) {
+                e.preventDefault();
                 
-                // 备用方案 - 如果上面的方法失败，延迟后使用标准 URL
+                // 尝试直接使用 LINE 协议打开应用
+                window.location.href = lineAppUrl;
+                
+                // 如果 LINE 协议失败，延迟后使用标准 URL
                 setTimeout(function() {
-                    window.location.href = `https://chat.whatsapp.com/${inviteCode}`;
+                    window.location.href = lineUrl;
                 }, 1000);
-            } else {
-                // 桌面设备直接打开群组链接
-                window.open(`https://chat.whatsapp.com/${inviteCode}`, '_blank');
             }
+            // 在桌面设备上，使用默认的链接行为
         });
     </script>
 </body>
