@@ -1,7 +1,7 @@
 <template>
   <div class="menu-page">
     <!-- 顶部导航 -->
-    <van-nav-bar title="Alisa Cake" fixed>
+    <van-nav-bar title="Alisa Cake" fixed style="z-index: 1000;">
       <template #left>
         <van-icon name="arrow-left" size="20" @click="goHome" style="color: #6B4423;" />
       </template>
@@ -501,6 +501,7 @@ function getImageUrl(imageUrl) {
 /* 顶部导航栏优化 - 确保按钮可见 */
 :deep(.van-nav-bar) {
   background: linear-gradient(135deg, #8D6E63 0%, #6B4423 100%);
+  z-index: 1000 !important;
 }
 
 :deep(.van-nav-bar__title) {
@@ -519,6 +520,8 @@ function getImageUrl(imageUrl) {
   display: flex;
   align-items: center;
   gap: 12px;
+  z-index: 1001;
+  position: relative;
 }
 
 .home-icon {
@@ -537,6 +540,7 @@ function getImageUrl(imageUrl) {
 /* 语言切换下拉菜单 - 白色主题 */
 .lang-dropdown {
   background: transparent !important;
+  z-index: 1002 !important;
 }
 
 .lang-dropdown :deep(.van-dropdown-menu__bar) {
@@ -544,6 +548,7 @@ function getImageUrl(imageUrl) {
   box-shadow: none !important;
   height: auto !important;
   padding: 0;
+  z-index: 1002 !important;
 }
 
 .lang-dropdown :deep(.van-dropdown-menu__title) {
@@ -561,6 +566,14 @@ function getImageUrl(imageUrl) {
 
 .lang-dropdown :deep(.van-dropdown-menu__title--active) {
   background: rgba(255, 255, 255, 0.3);
+}
+
+.lang-dropdown :deep(.van-popup) {
+  z-index: 1003 !important;
+}
+
+.lang-dropdown :deep(.van-overlay) {
+  z-index: 1002 !important;
 }
 
 .table-selector {

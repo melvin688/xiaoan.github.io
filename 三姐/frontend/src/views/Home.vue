@@ -107,6 +107,7 @@
     <van-popup v-model:show="showTablePicker" position="bottom" round>
       <van-picker
         :columns="tableColumns"
+        :loading="loading"
         @confirm="onTableConfirm"
         @cancel="showTablePicker = false"
         :title="$t('cart.selectTable')"
@@ -116,11 +117,12 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { showToast } from 'vant'
 import { useCartStore } from '@/stores/cart'
+import request from '@/utils/request'
 
 const router = useRouter()
 const { t, locale } = useI18n()
@@ -129,15 +131,40 @@ const cartStore = useCartStore()
 const showWifi = ref(false)
 const showCustom = ref(false)
 const showTablePicker = ref(false)
+const tableColumns = ref([])
+const loading = ref(false)
 
-const tableColumns = [
-  { text: 'A1', value: 'A1' },
-  { text: 'A2', value: 'A2' },
-  { text: 'A3', value: 'A3' },
-  { text: 'A4', value: 'A4' },
-  { text: 'A5', value: 'A5' },
-  { text: 'B1', value: 'B1' }
-]
+// 获取可用桌台
+const fetchTables = async () => {
+  try {
+    loading.value = true
+    const response = await request.get('/api/tables')
+    // 转换为picker格式
+    tableColumns.value = response.data.map(table => ({
+      text: table.table_number,
+      value: table.table_number
+    }))
+  } catch (error) {
+    console.error('获取桌台列表失败:', error)
+    showToast('获取桌台列表失败')
+    // 使用默认桌台作为后备
+    tableColumns.value = [
+      { text: 'A1', value: 'A1' },
+      { text: 'A2', value: 'A2' },
+      { text: 'A3', value: 'A3' },
+      { text: 'A4', value: 'A4' },
+      { text: 'A5', value: 'A5' },
+      { text: 'B1', value: 'B1' }
+    ]
+  } finally {
+    loading.value = false
+  }
+}
+
+// 组件加载时获取桌台列表
+onMounted(() => {
+  fetchTables()
+})
 
 // 显示WiFi信息
 const showWifiInfo = () => {
@@ -145,7 +172,7 @@ const showWifiInfo = () => {
 }
 
 // 选择服务类型
-const handleServiceSelect = (type) => {
+const handleServiceSelect = async (type) => {
   // 获取当前服务类型
   const currentServiceType = localStorage.getItem('serviceType')
   
@@ -159,7 +186,8 @@ const handleServiceSelect = (type) => {
   localStorage.setItem('serviceType', type)
   
   if (type === 'dine-in') {
-    // 在店堂食需要选择桌号
+    // 在店堂食需要选择桌号,先刷新桌台列表
+    await fetchTables()
     showTablePicker.value = true
   } else if (type === 'delivery') {
     // 外卖配送直接进入菜单，结账时要求填写地址
