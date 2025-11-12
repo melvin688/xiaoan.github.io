@@ -421,18 +421,17 @@ async function handleMockPayment(request, env) {
       return jsonResponse({ success: false, message: '订单号不能为空' }, 400);
     }
     
-    // 更新订单状态
+    // 更新订单支付状态 (status保持pending,只改payment_status)
     const result = await env.DB.prepare(`
       UPDATE orders 
-      SET status = 'paid', 
-          payment_status = 'paid',
+      SET payment_status = 'paid',
           payment_method = ?, 
           paid_at = CURRENT_TIMESTAMP
       WHERE order_no = ?
     `).bind(payment_method || 'cash', order_no).run();
     
     if (result.meta.changes === 0) {
-      return jsonResponse({ success: false, message: '订单不存在或已支付' }, 404);
+      return jsonResponse({ success: false, message: '订单不存在' }, 404);
     }
     
     return jsonResponse({ success: true, message: '支付成功' });
