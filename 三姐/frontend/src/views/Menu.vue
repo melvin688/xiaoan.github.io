@@ -1,12 +1,17 @@
 <template>
   <div class="menu-page">
     <!-- 顶部导航 -->
-    <van-nav-bar title="Alisa Cake" fixed left-arrow @click-left="goHome">
+    <van-nav-bar title="Alisa Cake" fixed>
+      <template #left>
+        <van-icon name="arrow-left" size="20" @click="goHome" style="color: #6B4423;" />
+      </template>
       <template #right>
-        <van-icon name="wap-home" size="20" @click="goHome" style="margin-right: 12px; color: #6B4423;" />
-        <van-dropdown-menu>
-          <van-dropdown-item v-model="currentLang" :options="langOptions" @change="changeLang" />
-        </van-dropdown-menu>
+        <div class="nav-right-actions">
+          <van-icon name="wap-home" size="20" @click="goHome" class="home-icon" />
+          <van-dropdown-menu class="lang-dropdown">
+            <van-dropdown-item v-model="currentLang" :options="langOptions" @change="changeLang" />
+          </van-dropdown-menu>
+        </div>
       </template>
     </van-nav-bar>
 
@@ -473,6 +478,71 @@ function getImageUrl(imageUrl) {
   padding-bottom: 70px;
   min-height: 100vh;
   background: linear-gradient(180deg, #FFF8F0 0%, #F5F5F5 100%);
+}
+
+/* 顶部导航栏优化 - 确保按钮可见 */
+:deep(.van-nav-bar) {
+  background: linear-gradient(135deg, #8D6E63 0%, #6B4423 100%);
+}
+
+:deep(.van-nav-bar__title) {
+  color: white;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+:deep(.van-nav-bar__left .van-icon) {
+  color: white !important;
+  font-size: 20px;
+}
+
+/* 右侧按钮容器 */
+.nav-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.home-icon {
+  color: white !important;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+  transition: all 0.3s;
+}
+
+.home-icon:active {
+  transform: scale(0.9);
+  opacity: 0.8;
+}
+
+/* 语言切换下拉菜单 - 白色主题 */
+.lang-dropdown {
+  background: transparent !important;
+}
+
+.lang-dropdown :deep(.van-dropdown-menu__bar) {
+  background: transparent !important;
+  box-shadow: none !important;
+  height: auto !important;
+  padding: 0;
+}
+
+.lang-dropdown :deep(.van-dropdown-menu__title) {
+  color: white !important;
+  font-weight: 600;
+  padding: 6px 10px;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+}
+
+.lang-dropdown :deep(.van-dropdown-menu__title::after) {
+  border-color: white transparent transparent !important;
+}
+
+.lang-dropdown :deep(.van-dropdown-menu__title--active) {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .table-selector {

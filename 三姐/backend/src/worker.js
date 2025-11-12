@@ -414,15 +414,35 @@ async function handleCreatePayment(request, env) {
 }
 
 async function handleMockPayment(request, env) {
-  const { order_no, payment_method } = await request.json();
-  
-  await env.DB.prepare(`
-    UPDATE orders 
-    SET status = 'paid', payment_method = ?, updated_at = datetime('now')
-    WHERE order_no = ?
-  `).bind(payment_method, order_no).run();
-  
-  return jsonResponse({ success: true, message: '支付成功' });
+  try {
+    const { order_no, payment_method } = await request.json();
+    
+    if (!order_no) {
+      return jsonResponse({ success: false, message: '订单号不能为空' }, 400);
+    }
+    
+    // 更新订单状态
+    const result = await env.DB.prepare(`
+      UPDATE orders 
+      SET status = 'paid', 
+          payment_status = 'paid',
+          payment_method = ?, 
+          paid_at = CURRENT_TIMESTAMP
+      WHERE order_no = ?
+    `).bind(payment_method || 'cash', order_no).run();
+    
+    if (result.meta.changes === 0) {
+      return jsonResponse({ success: false, message: '订单不存在或已支付' }, 404);
+    }
+    
+    return jsonResponse({ success: true, message: '支付成功' });
+  } catch (error) {
+    console.error('Mock payment error:', error);
+    return jsonResponse({ 
+      success: false, 
+      message: '支付处理失败: ' + error.message 
+    }, 500);
+  }
 }
 
 async function handleGetPaymentStatus(request, env, path) {
