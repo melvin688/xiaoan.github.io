@@ -264,7 +264,10 @@ const editingPriceId = ref(null)
 const editingPrice = ref(0)
 
 // 上传配置
-const uploadUrl = ref('http://localhost:3000/api/upload/image')
+const uploadUrl = computed(() => {
+  const baseURL = import.meta.env.VITE_API_BASE_URL || 'https://alisa-cake-api.yinhaoping7.workers.dev'
+  return `${baseURL}/api/upload`
+})
 const uploadHeaders = computed(() => ({
   'Authorization': `Bearer ${authStore.token}`
 }))

@@ -19,8 +19,8 @@
     </div>
 
     <div v-else class="cart-content">
-      <!-- 服务类型信息 -->
-      <div class="service-info">
+      <!-- 服务类型信息 (仅堂食显示) -->
+      <div class="service-info" v-if="serviceType === 'dine-in'">
         <van-cell-group inset>
           <van-cell 
             :title="getServiceTypeLabel()" 

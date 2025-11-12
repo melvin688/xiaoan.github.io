@@ -520,9 +520,76 @@ const printOrder = async (order) => {
   try {
     const res = await printOrderApi(order.id)
     if (res.success) {
+      // 显示打印预览对话框
+      const receipt = res.data.receipt
+      
+      // 创建打印窗口
+      const printWindow = window.open('', '', 'width=400,height=600')
+      if (!printWindow) {
+        ElMessage.error('无法打开打印窗口,请允许弹窗')
+        return
+      }
+      
+      printWindow.document.write(`
+        <html>
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>打印小票</title>
+            <style>
+              @page { size: 80mm auto; margin: 0; }
+              @media print {
+                body { margin: 0; padding: 0; }
+                .no-print { display: none; }
+              }
+              body { 
+                font-family: 'Courier New', monospace;
+                font-size: 12px;
+                width: 80mm;
+                margin: 0;
+                padding: 5mm;
+                line-height: 1.6;
+                white-space: pre-wrap;
+              }
+              .print-actions {
+                text-align: center;
+                margin: 20px 0;
+                padding: 10px;
+                background: #f5f5f5;
+              }
+              button {
+                margin: 0 5px;
+                padding: 8px 16px;
+                font-size: 14px;
+                cursor: pointer;
+                border-radius: 4px;
+                border: 1px solid #ddd;
+              }
+              .print-btn {
+                background: #409EFF;
+                color: white;
+                border-color: #409EFF;
+              }
+              .close-btn {
+                background: white;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="print-actions no-print">
+              <button class="print-btn" onclick="window.print()">打印</button>
+              <button class="close-btn" onclick="window.close()">关闭</button>
+            </div>
+            <pre>${receipt}</pre>
+          </body>
+        </html>
+      `)
+      printWindow.document.close()
+      
       ElMessage.success(t('orders.messages.printed'))
     }
   } catch (error) {
+    console.error('打印错误:', error)
     ElMessage.error(error.message || t('orders.messages.printFailed'))
   }
 }

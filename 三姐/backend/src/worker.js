@@ -1072,10 +1072,13 @@ async function handleAdminCreateTable(request, env) {
   const data = await request.json();
   
   const result = await env.DB.prepare(`
-    INSERT INTO tables (table_number, seats, status, qr_code)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO tables (table_number, table_name, capacity, status, qr_code)
+    VALUES (?, ?, ?, ?, ?)
   `).bind(
-    data.table_number, data.seats || 4, data.status || 'available',
+    data.table_number,
+    data.table_name || data.table_number,
+    data.capacity || 4,
+    data.status || 'available',
     data.qr_code || ''
   ).run();
   
@@ -1089,11 +1092,15 @@ async function handleAdminUpdateTable(request, env, path) {
   
   await env.DB.prepare(`
     UPDATE tables SET
-      table_number = ?, seats = ?, status = ?, qr_code = ?
+      table_number = ?, table_name = ?, capacity = ?, status = ?, qr_code = ?
     WHERE id = ?
   `).bind(
-    data.table_number, data.seats || 4, data.status || 'available',
-    data.qr_code || '', tableId
+    data.table_number,
+    data.table_name || data.table_number,
+    data.capacity || 4,
+    data.status || 'available',
+    data.qr_code || '',
+    tableId
   ).run();
   
   return jsonResponse({ success: true, message: '桌台更新成功' });
