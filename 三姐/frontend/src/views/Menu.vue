@@ -27,6 +27,24 @@
       />
     </div>
 
+    <!-- 外卖/自取顶部操作栏 -->
+    <div v-else class="service-top-bar">
+      <div class="service-actions">
+        <van-button 
+          icon="wap-home" 
+          plain 
+          size="small" 
+          @click="goHome"
+          class="action-btn"
+        >
+          {{ $t('common.backToHome') }}
+        </van-button>
+        <van-dropdown-menu class="lang-selector">
+          <van-dropdown-item v-model="currentLang" :options="langOptions" @change="changeLang" />
+        </van-dropdown-menu>
+      </div>
+    </div>
+
     <!-- 分类标签 -->
     <van-tabs v-model:active="activeCategory" @change="onCategoryChange" sticky :offset-top="serviceType === 'dine-in' ? 106 : 46">
       <van-tab v-for="category in categories" :key="category.id" :title="getCategoryName(category)">
@@ -550,6 +568,61 @@ function getImageUrl(imageUrl) {
   background: white;
   padding: 12px 15px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* 外卖/自取顶部操作栏 */
+.service-top-bar {
+  margin-top: 46px;
+  background: white;
+  padding: 12px 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border-bottom: 1px solid #F5E6D3;
+}
+
+.service-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.action-btn {
+  flex: 0 0 auto;
+  border-color: #8D6E63;
+  color: #6B4423;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 0 16px;
+  height: 36px;
+}
+
+.action-btn:active {
+  background: #FFF8F0;
+}
+
+.lang-selector {
+  flex: 0 0 auto;
+  background: transparent;
+}
+
+.lang-selector :deep(.van-dropdown-menu__bar) {
+  background: transparent !important;
+  box-shadow: none !important;
+  height: 36px !important;
+}
+
+.lang-selector :deep(.van-dropdown-menu__title) {
+  color: #6B4423 !important;
+  font-weight: 600;
+  padding: 8px 12px;
+  background: #FFF8F0;
+  border: 1px solid #8D6E63;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.lang-selector :deep(.van-dropdown-menu__title::after) {
+  border-color: #6B4423 transparent transparent !important;
 }
 
 /* 手机端优化: 桌号选择器 */
