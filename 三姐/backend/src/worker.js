@@ -90,6 +90,11 @@ export default {
         return await handleGetPaymentStatus(request, env, path);
       }
       
+      // 图片上传
+      if (path === '/api/upload' && request.method === 'POST') {
+        return await handleUpload(request, env);
+      }
+      
       // 图片服务
       if (path.match(/^\/uploads\/.+$/)) {
         return await handleGetImage(request, env, path);
@@ -275,11 +280,17 @@ async function handleGetCategories(request, env) {
 
 // ========== 桌台相关 ==========
 async function handleGetTables(request, env) {
-  const { results } = await env.DB.prepare(`
-    SELECT * FROM tables 
-    WHERE status = 'available' 
-    ORDER BY table_number
-  `).all();
+  // C端只返回可用桌台,B端返回所有桌台
+  const url = new URL(request.url);
+  const isAdmin = url.searchParams.get('admin') === 'true';
+  
+  let query = 'SELECT * FROM tables';
+  if (!isAdmin) {
+    query += ' WHERE status = \'available\'';
+  }
+  query += ' ORDER BY table_number';
+  
+  const { results } = await env.DB.prepare(query).all();
   
   return jsonResponse({ success: true, data: results });
 }
@@ -433,6 +444,50 @@ async function handleGetPaymentStatus(request, env, path) {
       payment_method: order.payment_method
     }
   });
+}
+
+// ========== 图片相关 ==========
+// 上传图片
+async function handleUpload(request, env) {
+  try {
+    const formData = await request.formData();
+    const file = formData.get('file');
+    
+    if (!file) {
+      return jsonResponse({ success: false, message: '没有文件' }, 400);
+    }
+    
+    // 生成唯一文件名
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 10000);
+    const ext = file.name.split('.').pop();
+    const filename = `${timestamp}-${random}.${ext}`;
+    
+    // 上传到R2
+    await env.IMAGES.put(filename, file.stream(), {
+      httpMetadata: {
+        contentType: file.type
+      }
+    });
+    
+    // 返回图片URL
+    const imageUrl = `/uploads/${encodeURIComponent(filename)}`;
+    
+    return jsonResponse({ 
+      success: true, 
+      message: '上传成功',
+      data: {
+        url: imageUrl,
+        filename: filename
+      }
+    });
+  } catch (error) {
+    console.error('Upload error:', error);
+    return jsonResponse({ 
+      success: false, 
+      message: '上传失败: ' + error.message 
+    }, 500);
+  }
 }
 
 // ========== 图片服务 ==========
@@ -679,11 +734,33 @@ async function handleAdminGetTakeawayOrders(request, env) {
 async function handleAdminGetTableOrders(request, env, path) {
   const tableId = path.split('/').pop();
   
+  // 获取桌号
+  const table = await env.DB.prepare(`
+    SELECT table_number FROM tables WHERE id = ?
+  `).bind(tableId).first();
+  
+  if (!table) {
+    return jsonResponse({ success: true, data: [] });
+  }
+  
+  // 根据桌号查询订单(包括未完成的订单)
   const { results } = await env.DB.prepare(`
-    SELECT * FROM orders 
-    WHERE table_id = ? 
-    ORDER BY created_at DESC
-  `).bind(tableId).all();
+    SELECT o.*, 
+      (SELECT COUNT(*) FROM order_items WHERE order_id = o.id) as item_count
+    FROM orders o
+    WHERE o.table_number = ? 
+      AND o.service_type = 'dine-in'
+      AND o.status NOT IN ('completed', 'cancelled')
+    ORDER BY o.created_at DESC
+  `).bind(table.table_number).all();
+  
+  // 为每个订单获取商品详情
+  for (let order of results) {
+    const { results: items } = await env.DB.prepare(`
+      SELECT * FROM order_items WHERE order_id = ?
+    `).bind(order.id).all();
+    order.items = items;
+  }
   
   return jsonResponse({ success: true, data: results });
 }
@@ -736,14 +813,118 @@ async function handleAdminPrintOrder(request, env, path) {
     UPDATE orders SET is_printed = 1 WHERE id = ?
   `).bind(orderId).run();
   
+  // 生成打印小票格式
+  const receipt = generateReceipt(order, items);
+  
   return jsonResponse({ 
     success: true, 
     message: '订单已标记为已打印',
     data: {
       order,
-      items
+      items,
+      receipt
     }
   });
+}
+
+// 生成小票格式
+function generateReceipt(order, items) {
+  const lines = [];
+  const width = 32; // 小票宽度
+  
+  // 居中函数
+  const center = (text) => {
+    const padding = Math.max(0, Math.floor((width - text.length) / 2));
+    return ' '.repeat(padding) + text;
+  };
+  
+  // 分隔线
+  const divider = '='.repeat(width);
+  const thinDivider = '-'.repeat(width);
+  
+  // 店名
+  lines.push(divider);
+  lines.push(center('Alisa Cake'));
+  lines.push(divider);
+  lines.push('');
+  
+  // 订单信息
+  lines.push(center('订单小票 / ORDER RECEIPT'));
+  lines.push(thinDivider);
+  lines.push(`订单号: ${order.order_no}`);
+  lines.push(`Order: ${order.order_no}`);
+  
+  // 桌号/服务类型
+  if (order.service_type === 'dine-in' && order.table_number) {
+    lines.push(`桌号/Table: ${order.table_number}`);
+  } else if (order.service_type === 'delivery') {
+    lines.push(`服务类型: 外卖配送`);
+    lines.push(`Service: Delivery`);
+  } else if (order.service_type === 'takeaway') {
+    lines.push(`服务类型: 来店自取`);
+    lines.push(`Service: Takeaway`);
+  }
+  
+  // 时间
+  const orderTime = new Date(order.created_at);
+  const timeStr = orderTime.toLocaleString('zh-CN', {
+    timeZone: 'Asia/Yangon',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).replace(/\//g, '-');
+  lines.push(`时间/Time: ${timeStr}`);
+  lines.push(thinDivider);
+  
+  // 商品明细
+  lines.push('商品明细 / Items:');
+  lines.push('');
+  
+  items.forEach((item, index) => {
+    const productName = item.product_name || '未知商品';
+    lines.push(`${index + 1}. ${productName}`);
+    
+    // 规格选项
+    if (item.options) {
+      try {
+        const opts = typeof item.options === 'string' ? JSON.parse(item.options) : item.options;
+        const optTexts = [];
+        if (opts.size) optTexts.push(opts.size);
+        if (opts.temperature) optTexts.push(opts.temperature);
+        if (opts.sweetness) optTexts.push(opts.sweetness);
+        if (optTexts.length > 0) {
+          lines.push(`   (${optTexts.join(', ')})`);
+        }
+      } catch (e) {
+        // 忽略JSON解析错误
+      }
+    }
+    
+    const qty = `x${item.quantity}`;
+    const price = `¥${item.subtotal} MMK`;
+    const spacing = width - qty.length - price.length;
+    lines.push(`   ${qty}${' '.repeat(Math.max(1, spacing))}${price}`);
+    lines.push('');
+  });
+  
+  lines.push(thinDivider);
+  
+  // 总计
+  const totalLabel = '总计 / Total:';
+  const totalAmount = `¥${order.total_amount} MMK`;
+  const totalSpacing = width - totalLabel.length - totalAmount.length;
+  lines.push(totalLabel + ' '.repeat(Math.max(1, totalSpacing)) + totalAmount);
+  lines.push(thinDivider);
+  lines.push('');
+  
+  // 结束语
+  lines.push(center('谢谢惠顾!'));
+  lines.push(center('Thank You!'));
+  lines.push('');
+  
+  return lines.join('\n');
 }
 
 // 管理端 - 获取商品列表
@@ -877,7 +1058,7 @@ async function handleAdminDeleteCategory(request, env, path) {
   return jsonResponse({ success: true, message: '分类删除成功' });
 }
 
-// 管理端 - 获取桌台列表
+// 管理端 - 获取所有餐桌(包括占用的)
 async function handleAdminGetTables(request, env) {
   const { results } = await env.DB.prepare(`
     SELECT * FROM tables ORDER BY table_number
